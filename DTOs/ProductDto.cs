@@ -7,7 +7,7 @@ public class ProductDto
     public string Info { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int Count { get; set; }
-    public string? Image { get; set; }
+    public List<string> Image { get; set; } = new List<string>();
     public int CategoryId { get; set; }
     public string? CategoryName { get; set; }
 }
@@ -18,6 +18,6 @@ public class CreateProductDto
     public string Info { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public int Count { get; set; }
-    public string? Image { get; set; }
+    public List<string> Image { get; set; } = new List<string>();
     public int CategoryId { get; set; }
 }

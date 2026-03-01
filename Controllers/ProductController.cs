@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using BoxFusion.API.Application.Services;
+using BoxFusion.API.BoxFusion.Domain.Entities;
+using BoxFusion.Application.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using BoxFusion.API.BoxFusion.Domain.Entities;
-using BoxFusion.Application.DTOs;
-
 namespace BoxFusion.API.Controllers;
 
 [ApiController]
@@ -31,7 +31,7 @@ public class ProductController : ControllerBase
                 Info = p.Info,
                 Price = p.Price,
                 Count = p.Count,
-                Image = p.Image,
+                Image = p.Image != null ? new List<string> { p.Image } : new List<string>(),
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category != null ? p.Category.Name : null
             })
@@ -54,7 +54,7 @@ public class ProductController : ControllerBase
                 Info = p.Info,
                 Price = p.Price,
                 Count = p.Count,
-                Image = p.Image,
+                Image = p.Image != null ? new List<string> { p.Image } : new List<string>(),
                 CategoryId = p.CategoryId,
                 CategoryName = p.Category != null ? p.Category.Name : null
             })
@@ -83,7 +83,7 @@ public class ProductController : ControllerBase
             Info = dto.Info,
             Price = dto.Price,
             Count = dto.Count,
-            Image = dto.Image,
+            Image = dto.Image != null && dto.Image.Count > 0 ? dto.Image[0] : null,
             CategoryId = dto.CategoryId,
             CreatedByUserId = userId
         };
@@ -98,7 +98,7 @@ public class ProductController : ControllerBase
             Info = product.Info,
             Price = product.Price,
             Count = product.Count,
-            Image = product.Image,
+            Image = product.Image != null ? new List<string> { product.Image } : new List<string>(),
             CategoryId = product.CategoryId
         });
     }
@@ -120,7 +120,7 @@ public class ProductController : ControllerBase
         product.Info = dto.Info;
         product.Price = dto.Price;
         product.Count = dto.Count;
-        product.Image = dto.Image;
+        product.Image = dto.Image != null && dto.Image.Count > 0 ? dto.Image[0] : null;
         product.CategoryId = dto.CategoryId;
 
         await _context.SaveChangesAsync();
@@ -132,11 +132,25 @@ public class ProductController : ControllerBase
             Info = product.Info,
             Price = product.Price,
             Count = product.Count,
-            Image = product.Image,
+            Image = product.Image != null ? new List<string> { product.Image } : new List<string>(),
             CategoryId = product.CategoryId
         });
+
+
     }
 
+
+    // POST: api/product/upload-image
+    [HttpPost("upload-image")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> UploadImage(IFormFile file, [FromServices] CloudinaryService cloudinaryService)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("სურათი არ არის");
+
+        var url = await cloudinaryService.UploadImageAsync(file);
+        return Ok(new { url });
+    }
     // DELETE: api/product/5
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]

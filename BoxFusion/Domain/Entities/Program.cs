@@ -17,12 +17,24 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<BoxFusionDbContext>()
     .AddDefaultTokenProviders();
 
-// 3. Services
+// 3. CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReact", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+// 4. Services
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<CloudinaryService>();
 
-// 4. Swagger + JWT ავტორიზაცია
+// 5. Swagger + JWT
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -50,7 +62,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// 5. JWT
+// 6. JWT
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -73,7 +85,7 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// 6. Roles შექმნა
+// 7. Roles შექმნა
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
@@ -85,6 +97,8 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -92,6 +106,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowReact"); // ბოლოს ეს დავამატე
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
