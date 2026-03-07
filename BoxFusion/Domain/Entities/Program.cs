@@ -8,21 +8,16 @@ using BoxFusion.API.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. მონაცემთა ბაზა
-//builder.Services.AddDbContext<BoxFusionDbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-
-// 1. მონაცემთა ბაზა - შეცვალე UseSqlServer -> UseNpgsql
+// 1. მონაცემთა ბაზა - PostgreSQL (Npgsql)
 builder.Services.AddDbContext<BoxFusionDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Identity
+// 2. Identity კონფიგურაცია
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<BoxFusionDbContext>()
     .AddDefaultTokenProviders();
 
-// 3. CORS
+// 3. CORS - React-თან დასაკავშირებლად
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReact", policy =>
@@ -33,13 +28,13 @@ builder.Services.AddCors(options =>
     });
 });
 
-// 4. Services
+// 4. აპლიკაციის სერვისები
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<CloudinaryService>();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddScoped<CloudinaryService>();
 
-// 5. Swagger + JWT
+// 5. Swagger კონფიგურაცია + JWT მხარდაჭერა
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -49,7 +44,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "შეიყვანე: Bearer {token}"
+        Description = "შეიყვანე ფორმატით: Bearer {შენი_თოკენი}"
     });
     options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
@@ -67,7 +62,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// 6. JWT
+// 6. JWT ავთენტიფიკაცია
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -81,43 +76,61 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "DefaultIssuer",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "DefaultAudience",
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "BoxFusion",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "BoxFusionUsers",
         IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "LongEnoughSecretKey1234567890!"))
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "BoxFusionSuperSecretKey1234567890!"))
     };
 });
 
 var app = builder.Build();
 
-// 7. Roles შექმნა
-//using (var scope = app.Services.CreateScope())
-//{
-//    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-//    string[] roles = { "Admin", "Customer" };
-//    foreach (var role in roles)
-//    {
-//        if (!await roleManager.RoleExistsAsync(role))
-//            await roleManager.CreateAsync(new IdentityRole(role));
-//    }
-//}
-
-// 7. Roles შექმნამდე დაამატე:
+// 7. მონაცემთა ბაზის მიგრაცია და როლების შექმნა (ავტომატური)
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<BoxFusionDbContext>();
-    db.Database.Migrate();
+    var services = scope.ServiceProvider;
+    try
+    {
+        var db = services.GetRequiredService<BoxFusionDbContext>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        // ავტომატური მიგრაცია
+        db.Database.Migrate();
+
+        // როლების შექმნა
+        string[] roles = { "Admin", "Customer" };
+        foreach (var role in roles)
+        {
+            if (!roleManager.RoleExistsAsync(role).GetAwaiter().GetResult())
+            {
+                roleManager.CreateAsync(new IdentityRole(role)).GetAwaiter().GetResult();
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "ბაზის მიგრაციისას ან როლების შექმნისას მოხდა შეცდომა.");
+    }
 }
 
+// 8. Middleware-ების რიგითობა
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // Production-შიც რომ ჩანდეს Swagger (თუ გინდა), ამოიტანე if-ის გარეთ
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.UseHttpsRedirection();
-app.UseCors("AllowReact"); // ბოლოს ეს დავამატე
+app.UseCors("AllowReact");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 app.Run();

@@ -35,8 +35,11 @@ public class AuthService
         if (!result.Succeeded)
             return new AuthResult { Success = false, Message = string.Join(", ", result.Errors.Select(e => e.Description)) };
 
-        // Add role
-        await _userManager.AddToRoleAsync(user, dto.Role);
+        // როლის მინიჭება
+        if (!string.IsNullOrEmpty(dto.Role))
+        {
+            await _userManager.AddToRoleAsync(user, dto.Role);
+        }
 
         return new AuthResult { Success = true, Message = "User registered successfully" };
     }
@@ -49,24 +52,35 @@ public class AuthService
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, dto.Password);
         if (!isPasswordValid) return null;
 
-        // create JWT token
+        // მომხმარებლის როლების წამოღება
         var roles = await _userManager.GetRolesAsync(user);
 
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Email, user.Email)
+            new Claim(ClaimTypes.Email, user.Email ?? "")
         };
+
+        // როლების ჩამატება Claim-ებში
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+        // 1. JWT Key-ს დაზღვევა (თუ კონფიგურაციაში არ არის, იყენებს სათადარიგოს)
+        var jwtKey = _config["Jwt:Key"] ?? "BoxFusion_Super_Secret_Key_2026_Secure_String_32_Chars!!";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+        // 2. ვადის (ExpireMinutes) დაზღვევა
+        var expireStr = _config["Jwt:ExpireMinutes"] ?? "60";
+        if (!double.TryParse(expireStr, out double expireMinutes))
+        {
+            expireMinutes = 60; // Default მნიშვნელობა შეცდომის შემთხვევაში
+        }
+
         var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
+            issuer: _config["Jwt:Issuer"] ?? "BoxFusion",
+            audience: _config["Jwt:Audience"] ?? "BoxFusionUsers",
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:ExpireMinutes"]!)),
+            expires: DateTime.UtcNow.AddMinutes(expireMinutes),
             signingCredentials: creds
         );
 
