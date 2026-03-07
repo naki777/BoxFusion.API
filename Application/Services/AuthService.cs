@@ -60,7 +60,7 @@ public class AuthService
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email ?? "")
         };
-
+        
         // როლების ჩამატება Claim-ებში
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 

@@ -20,11 +20,15 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 // 3. CORS - React-თან დასაკავშირებლად
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "https://box-fusion-frontend.vercel.app" // დაამატე შენი ფრონტის ლინკი
+              )
+              .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowCredentials();
     });
 });
 
