@@ -132,7 +132,7 @@ else
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowReact");
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
