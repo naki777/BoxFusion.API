@@ -9,8 +9,13 @@ using BoxFusion.API.Application.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. მონაცემთა ბაზა
+//builder.Services.AddDbContext<BoxFusionDbContext>(options =>
+//    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+// 1. მონაცემთა ბაზა - შეცვალე UseSqlServer -> UseNpgsql
 builder.Services.AddDbContext<BoxFusionDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 2. Identity
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
@@ -86,18 +91,23 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 // 7. Roles შექმნა
+//using (var scope = app.Services.CreateScope())
+//{
+//    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+//    string[] roles = { "Admin", "Customer" };
+//    foreach (var role in roles)
+//    {
+//        if (!await roleManager.RoleExistsAsync(role))
+//            await roleManager.CreateAsync(new IdentityRole(role));
+//    }
+//}
+
+// 7. Roles შექმნამდე დაამატე:
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    string[] roles = { "Admin", "Customer" };
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-            await roleManager.CreateAsync(new IdentityRole(role));
-    }
+    var db = scope.ServiceProvider.GetRequiredService<BoxFusionDbContext>();
+    db.Database.Migrate();
 }
-
-
 
 if (app.Environment.IsDevelopment())
 {
