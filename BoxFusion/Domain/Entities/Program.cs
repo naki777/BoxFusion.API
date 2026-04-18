@@ -24,7 +24,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "http://localhost:3000",
-                "https://box-fusion-frontend.vercel.app" // დაამატე შენი ფრონტის ლინკი
+                "https://box-fusion-frontend.vercel.app" 
               )
               .AllowAnyMethod()
               .AllowAnyHeader()
