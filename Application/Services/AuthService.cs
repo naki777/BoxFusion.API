@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using BoxFusion.Application.DTOs;
 using BoxFusion.API.BoxFusion.Domain.Entities;
+using BoxFusion.API.DTOs;
 
 namespace BoxFusion.API.Application.Services;
 
