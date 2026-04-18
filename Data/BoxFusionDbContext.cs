@@ -10,7 +10,7 @@ namespace BoxFusion.API.BoxFusion.Domain.Entities
             : base(options) { }
 
 
-        // აი, აქ ჩავამატოთ შენი ცხრილები!
+        //
         public DbSet<Product> Products { get; set; }
         public DbSet<Category> Categories { get; set; }
 
