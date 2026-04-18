@@ -1,4 +1,4 @@
-﻿namespace BoxFusion.Application.DTOs;
+﻿namespace BoxFusion.API.DTOs;
 
 public class AuthResult
 {
